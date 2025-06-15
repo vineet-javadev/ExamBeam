@@ -1,1 +1,8 @@
 /* You can add global styles to this file, and also import other style files */
+@import "tailwindcss";
+
+.bg-templete{
+    background: #f8fafc;
+    border-radius: 0.5rem;
+    color: #09090b;
+}
