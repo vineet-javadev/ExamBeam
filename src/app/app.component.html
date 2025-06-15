@@ -31,54 +31,145 @@
     <!-- Left Panel -->
     <!-- Main Left Panel -->
     <div [class.col-span-3]="!sidebarVisible" [class.col-span-2]="sidebarVisible"
-      class="transition-all duration-500 ease-in-out bg-gradient-to-br from-zinc-800/60 to-zinc-900/60 backdrop-blur-md p-6 rounded-2xl shadow-xl flex flex-col justify-center text-zinc-200 border border-white/10 hover:ring-2 hover:ring-indigo-500/40 space-y-6">
+      class="relative transition-all duration-500 ease-in-out font-mono text-sm bg-gradient-to-br from-zinc-800/60 to-zinc-900/60 backdrop-blur-md rounded-l-2xl shadow-xl flex flex-col text-zinc-200 border border-white/10 hover:ring-2 hover:ring-indigo-500/40 h-[calc(100vh-7rem)]">
 
-      <!-- No response yet -->
-      <ng-container *ngIf="!response">
-        <span
-          class="text-2xl font-bold text-center bg-gradient-to-r from-pink-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent animate-gradient-x">
-          🧠 Smash your syllabus in minutes!
-        </span>
-      </ng-container>
+      <div *ngIf="isLoading"
+        class="absolute inset-0 rounded-l-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 z-50 flex flex-col items-center justify-center space-y-4">
 
-      <!-- Response received -->
-      <ng-container *ngIf="response">
+        <!-- Loader Animation -->
+        <div class="flex space-x-2">
+          <div class="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"></div>
+          <div class="w-3 h-3 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.2s]"></div>
+          <div class="w-3 h-3 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.4s]"></div>
+        </div>
 
-        <!-- MCQ Mode -->
-        <ng-container *ngIf="examMode === 'mcq'">
-          <markdown [data]="response"></markdown>
+        <!-- Motivational Tagline -->
+        <p class="text-sm text-indigo-200 italic animate-fade-in-slow text-center px-4">
+          "{{ currentTagline }}"
+        </p>
+      </div>
+
+
+
+
+      <!-- SCROLLABLE CONTENT -->
+      <div
+        class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-zinc-800 scrollbar-w-[2px]">
+
+        <!-- No response yet -->
+        <ng-container *ngIf="!response || response.length == 0">
+          <div class="h-full w-full flex justify-center items-center">
+            <span
+              class="text-2xl font-bold text-center bg-gradient-to-r from-pink-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent animate-gradient-x">
+              🧠 Smash your syllabus in minutes!
+            </span>
+          </div>
         </ng-container>
 
-        <!-- Short Question Mode -->
-        <ng-container *ngIf="examMode === 'short'">
-          <markdown [data]="response.question"></markdown>
-          <textarea [(ngModel)]="shortAnswer" placeholder="Write your answer..."
-            class="w-full mt-2 bg-zinc-800 text-white border border-zinc-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"></textarea>
-          <button (click)="submitShortAnswer()"
-            class="mt-2 w-fit bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-1.5 rounded-md shadow transition">
-            Submit Answer
-          </button>
+        <!-- Response received -->
+        <ng-container *ngIf="response">
+
+          <!-- MCQ Mode -->
+          <ng-container *ngIf="examMode === 'mcq' && response.length">
+            <div *ngFor="let q of response; let i = index" class="mb-8 space-y-3">
+              <!-- Render Question -->
+              <div>
+                <markdown [data]="q.question"></markdown>
+              </div>
+
+              <!-- Render Options -->
+              <div class="space-y-2">
+                <label *ngFor="let opt of q.options" class="block w-full rounded-lg cursor-pointer" [ngClass]="{
+          'border-green-500 bg-green-700/40': selectedOptions[i] && opt === q.answer,
+          'border-red-500 bg-red-700/40': selectedOptions[i] === opt && opt !== q.answer,
+          'border-zinc-700 hover:bg-zinc-800': !selectedOptions[i]
+        }">
+                  <div class="flex items-center gap-3 p-2 rounded-lg border transition-all duration-200">
+                    <input type="radio" [name]="'mcq' + i" [value]="opt" [(ngModel)]="selectedOptions[i]"
+                      (change)="onMcqOptionSelect(i, opt)" [disabled]="selectedOptions[i] !== null"
+                      class="accent-indigo-500" />
+                    <span class="text-sm text-zinc-300">{{ opt }}</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div class="flex justify-between items-center border-t p-2 border-cyan-300">
+              <span>Score : {{obtainMarks}}/{{totalMarks}}</span>
+              <button (click)="getMoreQuestions()" [disabled]="!allQuestionsAnswered()"
+                [ngClass]="allQuestionsAnswered() ? 'bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow transition cursor-pointer' : 'bg-gray-600 hover:bg-gray-700 text-white font-medium px-4 py-2 rounded-md shadow transition cursor-not-allowed '">
+                More Questions
+              </button>
+            </div>
+          </ng-container>
+
+
+
+          <!-- Short Question Mode -->
+          <ng-container *ngIf="examMode === 'short'">
+            <markdown [data]="response[0].question"></markdown>
+            <textarea [(ngModel)]="Answer" required rows="5" placeholder="Write your answer..."
+              class="w-full mt-2 bg-zinc-800 text-white border border-zinc-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"></textarea>
+            <button (click)="submitAnswer(response[0].question)"
+              class="mt-2 w-fit bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-1.5 rounded-md shadow transition">
+              Submit Answer
+            </button>
+          </ng-container>
+
+          <!-- Long Question Mode -->
+          <ng-container *ngIf="examMode === 'long'">
+            <markdown [data]="response[0].question"></markdown>
+            <textarea [(ngModel)]="Answer" required rows="15" placeholder="Write your detailed answer..."
+              class="w-full mt-2 bg-zinc-800 text-white border border-zinc-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"></textarea>
+            <button (click)="submitAnswer(response[0].question)"
+              class="mt-2 w-fit bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-1.5 rounded-md shadow transition">
+              Submit Answer
+            </button>
+          </ng-container>
+
+          <ng-container *ngIf="Feedback">
+            <div class="mt-4 p-4 bg-zinc-900 border border-zinc-700 rounded-md shadow space-y-3">
+
+              <!-- Evaluation Result -->
+              <div>
+                <h3 class="text-indigo-400 text-sm font-semibold">Evaluation</h3>
+                <p class="text-white text-sm">{{ Feedback.evaluation }}</p>
+              </div>
+
+              <!-- Marks -->
+              <div>
+                <h3 class="text-indigo-400 text-sm font-semibold">Marks Awarded</h3>
+                <p class="text-white text-sm">{{ Feedback.marks }} / {{ examMode === 'long' ? 7 : 2 }}</p>
+              </div>
+
+              <!-- Toggleable Correct Answer Section -->
+              <div>
+                <div class="flex items-center justify-between cursor-pointer">
+                  <h3 class="text-indigo-400 text-sm font-semibold">Correct Answer</h3>
+                </div>
+                <p *ngIf="Feedback" class="mt-2 text-white text-sm whitespace-pre-wrap">
+                  {{ Feedback.Answer }}
+                </p>
+              </div>
+
+              <!-- New Question Button -->
+              <div class="pt-2">
+                <button (click)="newQuestion()"
+                  class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-1.5 rounded-md transition">
+                  Get New Question
+                </button>
+              </div>
+
+            </div>
+          </ng-container>
+
+
         </ng-container>
-
-        <!-- Long Question Mode -->
-        <ng-container *ngIf="examMode === 'long'">
-          <markdown [data]="response.question"></markdown>
-          <textarea [(ngModel)]="longAnswer" placeholder="Write your detailed answer..."
-            class="w-full mt-2 bg-zinc-800 text-white border border-zinc-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"></textarea>
-          <button (click)="submitLongAnswer()"
-            class="mt-2 w-fit bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-1.5 rounded-md shadow transition">
-            Submit Answer
-          </button>
-        </ng-container>
-
-      </ng-container>
-
+      </div>
     </div>
-
 
     <!-- Right Panel -->
     <div [class.hidden]="!sidebarVisible"
-      class="transition-all duration-500 ease-in-out bg-zinc-800/60 backdrop-blur-md p-4 rounded-2xl shadow-lg flex flex-col justify-center items-center gap-5 border border-white/10 hover:ring-2 hover:ring-indigo-500/40 w-full">
+      class="transition-all duration-500 ease-in-out bg-zinc-800/60 backdrop-blur-md p-4 rounded-r-2xl shadow-lg flex flex-col justify-center items-center gap-5 border border-white/10 hover:ring-2 hover:ring-indigo-500/40 w-full">
 
       <!-- Before Get Started -->
       <div *ngIf="!started">
@@ -121,7 +212,7 @@
           <div class="flex gap-2 flex-wrap">
             <label class="cursor-pointer">
               <input id="examMode-mcq" type="radio" name="examMode" [(ngModel)]="examMode" value="mcq"
-                class="peer hidden" />
+                onchange="changeExamMode()" class="peer hidden" />
               <div
                 class="px-4 py-1.5 rounded-full bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-500 transition-all shadow-sm hover:bg-zinc-700">
                 MCQ
@@ -129,7 +220,8 @@
             </label>
 
             <label class="cursor-pointer">
-              <input type="radio" name="examMode" [(ngModel)]="examMode" value="short" class="peer hidden" />
+              <input type="radio" name="examMode" [(ngModel)]="examMode" value="short" onchange="changeExamMode()"
+                class="peer hidden" />
               <div
                 class="px-4 py-1.5 rounded-full bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-500 transition-all shadow-sm hover:bg-zinc-700">
                 Short Question
@@ -137,7 +229,8 @@
             </label>
 
             <label class="cursor-pointer">
-              <input type="radio" name="examMode" [(ngModel)]="examMode" value="long" class="peer hidden" />
+              <input type="radio" name="examMode" [(ngModel)]="examMode" value="long" onchange="changeExamMode()"
+                class="peer hidden" />
               <div
                 class="px-4 py-1.5 rounded-full bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-500 transition-all shadow-sm hover:bg-zinc-700">
                 Long Question
@@ -178,6 +271,4 @@
     </div>
 
   </section>
-
-  <router-outlet />
 </main>

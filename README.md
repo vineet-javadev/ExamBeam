@@ -1,59 +1,71 @@
-# Exambeam
+# ExamBeam
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.1.8.
+ExamBeam is an AI-powered web application designed to help students prepare for exams at the last moment. Instantly generate MCQs, short answer, and long answer questions on any topic or chapter, get instant feedback, and review your recent searches—all in a fast, distraction-free interface.
 
-## Development server
+## Features
 
-To start a local development server, run:
+- **AI-Generated Questions:** Instantly generate multiple-choice, short, or long-answer questions for any topic.
+- **Exam Modes:** Switch between MCQ, short answer, and long answer modes.
+- **Instant Feedback:** Submit your answers and receive instant evaluation and marks powered by AI.
+- **Score Tracking:** Track your marks for each session.
+- **Recent Topics:** Quickly revisit your recent searches and clear history when needed.
+- **Motivational Taglines:** Stay motivated with rotating taglines while you study.
+- **Responsive UI:** Clean, modern, and mobile-friendly design.
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v20 or above recommended)
+- [Angular CLI](https://angular.dev/tools/cli) (`npm install -g @angular/cli`)
+
+### Installation
+
+1. Clone the repository:
+    ```bash
+    git clone https://github.com/vineet-javadev/ExamBeam.git
+    cd exambeam
+    ```
+2. Install dependencies:
+    ```bash
+    npm install
+    ```
+
+### Development Server
+
+Start the local development server:
 
 ```bash
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Open your browser and navigate to [http://localhost:4200/](http://localhost:4200/). The app will reload automatically if you change any source files.
 
-## Code scaffolding
+### Building
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+To build the project for production:
 
 ```bash
 ng build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+The build artifacts will be stored in the `dist/` directory.
 
-## Running unit tests
+## Configuration
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+- **API Key:** The app uses the Mistral AI API ( Free for Everyone ). You can set your API key in `src/key.ts`.
+- **Environment:** All configuration files are in the `src/` directory.
 
-```bash
-ng test
-```
+## Contributing
 
-## Running end-to-end tests
+Contributions are welcome! Please open issues or submit pull requests for improvements and bug fixes.
 
-For end-to-end (e2e) testing, run:
+## Acknowledgements
 
-```bash
-ng e2e
-```
+- [Angular](https://angular.dev/)
+- [Mistral AI](https://mistral.ai/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [ngx-markdown](https://github.com/jfcere/ngx-markdown)
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+---
+Happy last-minute studying!

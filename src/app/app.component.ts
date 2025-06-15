@@ -1,12 +1,28 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { trigger, transition, style, animate } from '@angular/animations';
 
+import { ServicesService } from './services.service';
+
+// Import MarkdownModule
+import { MarkdownModule } from 'ngx-markdown';
+
+export interface QuestionResponse {
+  question: string;
+  options: string[] | null;
+  answer: string | null;
+};
+
+export interface QuestionsAnswerResponse {
+  evaluation: string;
+  marks: number;
+  Answer: string;
+};
+
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, CommonModule, FormsModule],
+  imports: [ CommonModule, FormsModule, MarkdownModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   animations: [
@@ -23,21 +39,57 @@ import { trigger, transition, style, animate } from '@angular/animations';
 })
 export class AppComponent {
 
-  // response: any = null;
-  // Testing data
-  response = {
-    question: '### Define Newton\'s First Law\n- Also known as the Law of Inertia...',
-    options: ['A', 'B', 'C', 'D'], // for MCQ
-    answer: 'A',
-  };
-  // Testing end
+  constructor(private readonly cdr: ChangeDetectorRef, private readonly servicesService: ServicesService) { }
+
+  response: QuestionResponse[] = [];
+  Feedback: QuestionsAnswerResponse | null = null;
+
+  taglines: string[] = [
+    "Stay calm and let your mind learn.",
+    "Great things take time – trust the process.",
+    "Every question brings you closer to mastery.",
+    "Learning is the eye of the mind.",
+    "One step at a time – you’re getting there.",
+    "Silence. Focus. Achieve.",
+    "Even small progress is still progress.",
+    "This moment is shaping your success.",
+    "Push limits, not buttons.",
+    "Knowledge begins with curiosity."
+  ];
+
 
   title = 'ExamBeam';
   topicInput: string = '';
   sidebarVisible: boolean = true;
   started = false;
   examMode: string = 'mcq';
-  recentTopics: string[] = ['Binary Trees', 'OOP Principles', 'Spring Boot Auth'];
+  selectedOptions: (string | null)[] = [];
+  recentTopics: string[] = [];
+
+  shortAnswer: string = '';
+  Answer: string = '';
+  longAnswer: string = '';
+  currentTagline: string = '';
+  obtainMarks: number = 0;
+  totalMarks: number = 0;
+  isLoading: boolean = false;
+  showCorrectAnswer: boolean = false;
+
+  setRandomTagline() {
+    const index = Math.floor(Math.random() * this.taglines.length);
+    this.currentTagline = this.taglines[index];
+  }
+
+  async submitAnswer(question: string): Promise<void> {
+    if (this.Answer) {
+      this.isLoading = true;
+      try {
+        this.Feedback = await this.servicesService.checkAnswer(question, this.Answer, this.examMode);
+      } finally {
+        this.isLoading = false;
+      }
+    }
+  }
 
   toggleSidebar() {
     this.sidebarVisible = !this.sidebarVisible;
@@ -49,24 +101,50 @@ export class AppComponent {
     this.started = true;
   }
 
-  submitMode() {
-    if (this.examMode) {
-      alert(`Mode selected: ${this.examMode}`);
-      // Optionally update recent topics:
-      this.recentTopics.unshift(`Mode: ${this.examMode}`);
-    } else {
-      alert('Please select a mode');
+  getMoreQuestions() {
+    this.topicInput = this.recentTopics[0];
+    this.submitTopic();
+  }
+
+  changeExamMode() {
+    this.response = [];
+  }
+
+  newQuestion() {
+    this.topicInput = this.recentTopics[0] || '';
+    if (this.topicInput) {
+      this.Feedback = null; // Reset feedback
+      this.submitTopic();
     }
   }
 
-
-  submitTopic() {
+  async submitTopic() {
     const topic = this.topicInput.trim();
-    if (topic) {
+    if (!topic) return;
+
+    this.isLoading = true;
+    try {
+      const question = await this.servicesService.Question(topic, this.examMode);
+
+      if (this.examMode === 'mcq') {
+        this.response = Array.isArray(question) ? question : [question];
+        this.selectedOptions = Array(this.response.length).fill(null);
+        this.totalMarks = this.response.length;
+        this.obtainMarks = 0;
+      } else {
+        this.response = Array.isArray(question) ? question : [question];
+      }
+
       this.recentTopics.unshift(topic);
-      this.recentTopics = [...new Set(this.recentTopics)].slice(0, 10); // keep unique & limit to 10
+      this.recentTopics = [...new Set(this.recentTopics)].slice(0, 10);
       this.topicInput = '';
       localStorage.setItem('recentTopics', JSON.stringify(this.recentTopics));
+      this.cdr.detectChanges();
+    } catch (err) {
+      alert("Something went wrong while fetching questions.");
+      console.error(err);
+    } finally {
+      this.isLoading = false;
     }
   }
 
@@ -80,11 +158,28 @@ export class AppComponent {
   }
 
   ngOnInit() {
+    this.setRandomTagline();
     const store = localStorage.getItem('recentTopics');
     if (store != null) {
       this.recentTopics = JSON.parse(store);
       this.started = true;
     }
+    this.selectedOptions = Array(this.response.length).fill(null); // Initialize selected options array
+  }
+
+  onMcqOptionSelect(index: number, option: string) {
+    if (this.response[index].answer === option) {
+      this.obtainMarks++;
+    }
+    this.selectedOptions[index] = option;
+  }
+
+  allQuestionsAnswered(): boolean {
+    // Make sure response exists and has same length as selectedOptions
+    return this.response &&
+      this.selectedOptions &&
+      this.selectedOptions.length === this.response.length &&
+      this.selectedOptions.every(option => option !== null && option !== undefined);
   }
 
 }
