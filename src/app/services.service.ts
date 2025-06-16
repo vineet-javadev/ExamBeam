@@ -15,10 +15,10 @@ export class ServicesService {
   constructor() {
   }
 
-  async getQuestion(topic: string, examType: string , questionsHistory:string): Promise<any> {
+  async getQuestion(topic: string, examType: string, questionsHistory: string, hardness: number): Promise<any> {
     const chatResponse = await this.client.chat.complete({
       model: "mistral-small-latest",
-      messages: [{ role: 'user', content: this.messageToPrompt(topic, examType , questionsHistory) }],
+      messages: [{ role: 'user', content: this.messageToPrompt(topic, examType, questionsHistory, hardness) }],
     });
     return chatResponse.choices?.[0]?.message?.content || null;
   }
@@ -28,8 +28,8 @@ export class ServicesService {
   // 2 for - Fetch a quetion (Short / Long)
   // 3 for - Check the answer is correct or not
 
-  async Question(topic: string, type: string, questionsHistory: string): Promise<QuestionResponse | QuestionResponse[]> {
-    let response = await this.getQuestion(topic, type , questionsHistory);
+  async Question(topic: string, type: string, questionsHistory: string, hardness: number): Promise<QuestionResponse | QuestionResponse[]> {
+    let response = await this.getQuestion(topic, type, questionsHistory, hardness);
 
     response = response.replace(/```(?:json|markdown)?/gi, '').replace(/```/g, '').trim();
 
@@ -42,11 +42,11 @@ export class ServicesService {
     }
   }
 
-  async checkAnswer(question: string, ans: string, type: string): Promise<QuestionsAnswerResponse | null> {
+  async checkAnswer(question: string, ans: string, type: string , hardness:number): Promise<QuestionsAnswerResponse | null> {
     try {
       const chatResponse = await this.client.chat.complete({
         model: "mistral-small-latest",
-        messages: [{ role: 'user', content: this.messageToPromptForCheck(question, ans, type) }],
+        messages: [{ role: 'user', content: this.messageToPromptForCheck(question, ans, type , hardness) }],
       });
 
       let rawContent = chatResponse.choices?.[0]?.message?.content;
@@ -88,10 +88,11 @@ export class ServicesService {
 
   // Here i have to do Prompt Engineering 
 
-  messageToPrompt(topic: string, type: string , questionsHistory:string): string {
-    const baseInstruction = `Avoid repeating questions from this history:\n${questionsHistory}\n`;
+  messageToPrompt(topic: string, type: string, questionsHistory: string, hardness: number): string {
+    const baseInstruction = `Avoid repeating questions from this history:\n${questionsHistory}\nGenerate questions with a difficulty level of ${hardness}/10.`;
+
     if (type === 'mcq') {
-      return `${baseInstruction}Generate 5 multiple-choice questions based on the topic "${topic}". Each should be in this JSON format:
+      return `${baseInstruction} Generate 5 multiple-choice questions based on the topic "${topic}". The questions should reflect the specified difficulty level. Each should be in this JSON format:
 
 \`\`\`json
 [
@@ -105,7 +106,7 @@ export class ServicesService {
 
 Only return valid JSON inside triple backticks. Do not include explanation or anything else.`;
     } else if (type === 'short') {
-      return `${baseInstruction}Provide a short answer type question based on "${topic}" in this JSON format:
+      return `${baseInstruction}Provide a short answer type question based on "${topic}". It should reflect a difficulty level of ${hardness}/10. in this JSON format:
 
 \`\`\`json
 {
@@ -117,7 +118,7 @@ Only return valid JSON inside triple backticks. Do not include explanation or an
 
 Only return valid JSON inside triple backticks. Do not include explanation or anything else.`;
     } else {
-      return `${baseInstruction}Provide a long answer type question based on "${topic}" in this JSON format:
+      return `${baseInstruction}Provide a long answer type question based on "${topic}". The depth and complexity should match a difficulty level of ${hardness}/10. in this JSON format:
 
 \`\`\`json
 {
@@ -131,29 +132,27 @@ Only return valid JSON inside triple backticks. Do not include explanation or an
     }
   }
 
-  messageToPromptForCheck(question: string, ans: string, type: string): string {
-    if (type === 'short') {
-      return `
-You are an examiner evaluating a short-answer question worth 2 marks.
-
-Question:
-${question}
-
-Student's Answer:
-${ans}
-
-Instructions:
-- Evaluate the correctness and completeness of the answer.
-- Consider key points, accuracy, and clarity.
-- Assign a mark out of 2.
-- Respond only with a JSON object like:
-{ "evaluation": "Partially correct. Missed the key term.", "marks": 1 , "Answer": "Correct answer is: [correct answer here]" }
-
-Do not explain more than required. Stick to the specified JSON format.
-    `.trim();
+  messageToPromptForCheck(question: string, ans: string, type: string, hardness: number): string {
+    const isStrict = hardness >= 8;
+    const isLenient = hardness <= 3;
+    let markingTone: string;
+    if (isStrict) {
+      markingTone = "Be very strict. Penalize for incomplete structure, missing points, or vague answers.";
+    } else if (isLenient) {
+      markingTone = "Be lenient. Allow partial credit for effort or partially correct points.";
     } else {
-      return `
-You are an examiner evaluating a long-answer question worth 7 marks.
+      markingTone = "Use balanced judgment. Consider clarity, correctness, and structure.";
+    }
+
+    const marks = type === "short" ? 2 : 7;
+    const format = `{
+  "evaluation": "[Your brief evaluation]",
+  "marks": [0 to ${marks}],
+  "Answer": "Correct answer is: [correct answer here]"
+}`;
+
+    const instructions = `
+You are an examiner evaluating a ${type === "short" ? "short-answer" : "long-answer"} question worth ${marks} marks.
 
 Question:
 ${question}
@@ -162,16 +161,16 @@ Student's Answer:
 ${ans}
 
 Instructions:
-- Assess the answer thoroughly based on content coverage, structure, and relevance.
-- Break down into step marking if possible (e.g., intro, explanation, examples, conclusion).
-- Assign a mark out of 7.
-- Respond only with a JSON object like:
-{ "evaluation": "Well-structured answer covering all key points.", "marks": 6 , "Answer": "Correct answer is: [correct answer here]" }
+- Evaluate based on the level of hardness: ${hardness}/10.
+- ${markingTone}
+- Assign a mark out of ${marks}.
+- Respond only in this strict JSON format:
+${format}
 
-Do not include anything other than this JSON object.
-    `.trim();
-    }
+Do not explain more than required. Do not include anything outside the JSON object.
+  `.trim();
+
+    return instructions;
   }
-
 
 }

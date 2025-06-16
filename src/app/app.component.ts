@@ -62,6 +62,7 @@ export class AppComponent {
 
   title = 'ExamBeam';
   topicInput: string = '';
+  hardnessLevel: number = 5; // Default value
   sidebarVisible: boolean = true;
   started = false;
   examMode: string = 'mcq';
@@ -88,7 +89,7 @@ export class AppComponent {
       this.setRandomTagline();
       this.isLoading = true;
       try {
-        this.Feedback = await this.servicesService.checkAnswer(question, this.Answer, this.examMode);
+        this.Feedback = await this.servicesService.checkAnswer(question, this.Answer, this.examMode, this.hardnessLevel);
       } finally {
         this.isLoading = false;
       }
@@ -107,17 +108,23 @@ export class AppComponent {
 
   getMoreQuestions() {
     this.topicInput = this.recentTopics[0];
+    if (this.hardnessLevel < 10)
+      this.hardnessLevel++;
     this.submitTopic();
   }
 
   changeExamMode() {
     this.response = [];
+    this.totalMarks = 0;
+    this.obtainMarks = 0;
   }
 
   newQuestion() {
     this.topicInput = this.recentTopics[0] || '';
     if (this.topicInput) {
       this.Feedback = null; // Reset feedback
+      if (this.hardnessLevel < 10)
+        this.hardnessLevel++;
       this.submitTopic();
     }
   }
@@ -138,18 +145,17 @@ export class AppComponent {
       this.sidebarVisible = false; // Hide sidebar on small screens
     }
     try {
-      const question = await this.servicesService.Question(topic, this.examMode, JSON.stringify(this.questionsHistory));
+      const question = await this.servicesService.Question(topic, this.examMode, JSON.stringify(this.questionsHistory), this.hardnessLevel);
       if (Array.isArray(question)) {
         question.forEach(q => this.addQuestionInHistory([q.question]));
       }
       this.response = Array.isArray(question) ? question : [question];
       if (this.examMode === 'mcq') {
         this.selectedOptions = Array(this.response.length).fill(null);
-        this.totalMarks = this.response.length;
-        this.obtainMarks = 0;
+        this.totalMarks = this.totalMarks + this.response.length;
       }
       this.recentTopics.unshift(topic);
-      this.recentTopics = [...new Set(this.recentTopics)].slice(0, 10);
+      this.recentTopics = [...new Set(this.recentTopics)].slice(0, 6);
       this.topicInput = '';
       localStorage.setItem('recentTopics', JSON.stringify(this.recentTopics));
       this.cdr.detectChanges();
@@ -171,6 +177,8 @@ export class AppComponent {
   }
 
   ngOnInit() {
+    this.totalMarks = 0;
+    this.obtainMarks = 0;
     this.setRandomTagline();
     const store = localStorage.getItem('recentTopics');
     if (store != null) {
