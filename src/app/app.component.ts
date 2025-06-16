@@ -134,6 +134,9 @@ export class AppComponent {
     if (!topic) return;
     this.setRandomTagline();
     this.isLoading = true;
+    if (window.innerWidth < 768) {
+      this.sidebarVisible = false; // Hide sidebar on small screens
+    }
     try {
       const question = await this.servicesService.Question(topic, this.examMode, JSON.stringify(this.questionsHistory));
       if (Array.isArray(question)) {
