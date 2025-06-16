@@ -22,7 +22,7 @@ export interface QuestionsAnswerResponse {
 
 @Component({
   selector: 'app-root',
-  imports: [ CommonModule, FormsModule, MarkdownModule],
+  imports: [CommonModule, FormsModule, MarkdownModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   animations: [
@@ -57,6 +57,8 @@ export class AppComponent {
     "Knowledge begins with curiosity."
   ];
 
+  // Making things responsive ( for the mobile device )
+  window = window;
 
   title = 'ExamBeam';
   topicInput: string = '';
@@ -65,6 +67,7 @@ export class AppComponent {
   examMode: string = 'mcq';
   selectedOptions: (string | null)[] = [];
   recentTopics: string[] = [];
+  questionsHistory: string[] = [];
 
   shortAnswer: string = '';
   Answer: string = '';
@@ -82,6 +85,7 @@ export class AppComponent {
 
   async submitAnswer(question: string): Promise<void> {
     if (this.Answer) {
+      this.setRandomTagline();
       this.isLoading = true;
       try {
         this.Feedback = await this.servicesService.checkAnswer(question, this.Answer, this.examMode);
@@ -118,23 +122,29 @@ export class AppComponent {
     }
   }
 
+  async addQuestionInHistory(question: string[]) {
+    if (question.length > 0) {
+      this.questionsHistory.push(...question);
+      this.questionsHistory = Array.from(new Set(this.questionsHistory)); // Remove duplicates
+    }
+  }
+
   async submitTopic() {
     const topic = this.topicInput.trim();
     if (!topic) return;
-
+    this.setRandomTagline();
     this.isLoading = true;
     try {
-      const question = await this.servicesService.Question(topic, this.examMode);
-
+      const question = await this.servicesService.Question(topic, this.examMode, JSON.stringify(this.questionsHistory));
+      if (Array.isArray(question)) {
+        question.forEach(q => this.addQuestionInHistory([q.question]));
+      }
+      this.response = Array.isArray(question) ? question : [question];
       if (this.examMode === 'mcq') {
-        this.response = Array.isArray(question) ? question : [question];
         this.selectedOptions = Array(this.response.length).fill(null);
         this.totalMarks = this.response.length;
         this.obtainMarks = 0;
-      } else {
-        this.response = Array.isArray(question) ? question : [question];
       }
-
       this.recentTopics.unshift(topic);
       this.recentTopics = [...new Set(this.recentTopics)].slice(0, 10);
       this.topicInput = '';
@@ -165,6 +175,8 @@ export class AppComponent {
       this.started = true;
     }
     this.selectedOptions = Array(this.response.length).fill(null); // Initialize selected options array
+    // Show sidebar by default on large screens, hide on small screens
+    this.sidebarVisible = window.innerWidth >= 768;
   }
 
   onMcqOptionSelect(index: number, option: string) {

@@ -30,8 +30,12 @@
 
     <!-- Left Panel -->
     <!-- Main Left Panel -->
-    <div [class.col-span-3]="!sidebarVisible" [class.col-span-2]="sidebarVisible"
-      class="relative transition-all duration-500 ease-in-out font-mono text-sm bg-gradient-to-br from-zinc-800/60 to-zinc-900/60 backdrop-blur-md rounded-l-2xl shadow-xl flex flex-col text-zinc-200 border border-white/10 hover:ring-2 hover:ring-indigo-500/40 h-[calc(100vh-7rem)]">
+    <div [class.col-span-3]="!sidebarVisible" [class.col-span-2]="sidebarVisible" [ngClass]="{
+        'hidden': sidebarVisible && window.innerWidth < 768 , 
+        'rounded-2xl ': !sidebarVisible,
+        'rounded-l-2xl ':  sidebarVisible && window.innerWidth >= 768 
+        }"
+      class="relative transition-all duration-500 ease-in-out font-mono text-sm bg-gradient-to-br from-zinc-800/60 to-zinc-900/60 backdrop-blur-md shadow-xl flex flex-col text-zinc-200 border border-white/10 hover:ring-2 hover:ring-indigo-500/40 h-[calc(100vh-7rem)]">
 
       <div *ngIf="isLoading"
         class="absolute inset-0 rounded-l-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 z-50 flex flex-col items-center justify-center space-y-4">
@@ -168,8 +172,11 @@
     </div>
 
     <!-- Right Panel -->
-    <div [class.hidden]="!sidebarVisible"
-      class="transition-all duration-500 ease-in-out bg-zinc-800/60 backdrop-blur-md p-4 rounded-r-2xl shadow-lg flex flex-col justify-center items-center gap-5 border border-white/10 hover:ring-2 hover:ring-indigo-500/40 w-full">
+    <div [class.hidden]="!sidebarVisible" [ngClass]="{
+      'col-span-3 rounded-2xl': window.innerWidth < 768,
+      'col-span-1 rounded-r-2xl': window.innerWidth >= 768
+    }"
+      class="transition-all duration-500 ease-in-out bg-zinc-800/60 backdrop-blur-md p-4 shadow-lg flex flex-col justify-center items-center gap-5 border border-white/10 hover:ring-2 hover:ring-indigo-500/40 w-full h-[calc(100vh-7rem)]">
 
       <!-- Before Get Started -->
       <div *ngIf="!started">
@@ -257,9 +264,9 @@
         </div>
 
         <!-- Clear Cache Button -->
-        <div class="absolute bottom-2 w-full">
+        <div class="mt-auto w-full px-0">
           <button (click)="clearCache()"
-            class="w-full bg-gradient-to-r from-pink-600 via-red-500 to-red-700 hover:from-red-600 hover:to-pink-600 text-white font-semibold py-1.5 rounded-lg text-sm shadow-lg transition-all">
+            class="w-full text-center bg-gradient-to-r from-pink-600 via-red-500 to-red-700 hover:from-red-600 hover:to-pink-600 text-white font-semibold py-1.5 rounded-lg text-sm shadow-lg transition-all">
             🗑️ Clear History
           </button>
         </div>

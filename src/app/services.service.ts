@@ -12,15 +12,15 @@ export class ServicesService {
 
   client = new Mistral({ apiKey: this.apiKey });
 
-  async getQuestion(topic: string, examType: string): Promise<any> {
-    const chatResponse = await this.client.chat.complete({
-      model: "mistral-small-latest",
-      messages: [{ role: 'user', content: this.messageToPrompt(topic, examType) }],
-    });
-    return chatResponse.choices?.[0]?.message?.content || null;
+  constructor() {
   }
 
-  constructor() {
+  async getQuestion(topic: string, examType: string , questionsHistory:string): Promise<any> {
+    const chatResponse = await this.client.chat.complete({
+      model: "mistral-small-latest",
+      messages: [{ role: 'user', content: this.messageToPrompt(topic, examType , questionsHistory) }],
+    });
+    return chatResponse.choices?.[0]?.message?.content || null;
   }
 
   // Here i have to create 3 methods. 
@@ -28,8 +28,8 @@ export class ServicesService {
   // 2 for - Fetch a quetion (Short / Long)
   // 3 for - Check the answer is correct or not
 
-  async Question(topic: string, type: string): Promise<QuestionResponse | QuestionResponse[]> {
-    let response = await this.getQuestion(topic, type);
+  async Question(topic: string, type: string, questionsHistory: string): Promise<QuestionResponse | QuestionResponse[]> {
+    let response = await this.getQuestion(topic, type , questionsHistory);
 
     response = response.replace(/```(?:json|markdown)?/gi, '').replace(/```/g, '').trim();
 
@@ -88,9 +88,10 @@ export class ServicesService {
 
   // Here i have to do Prompt Engineering 
 
-  messageToPrompt(topic: string, type: string): string {
+  messageToPrompt(topic: string, type: string , questionsHistory:string): string {
+    const baseInstruction = `Avoid repeating questions from this history:\n${questionsHistory}\n`;
     if (type === 'mcq') {
-      return `Generate 5 multiple-choice questions based on the topic "${topic}". Each should be in this JSON format:
+      return `${baseInstruction}Generate 5 multiple-choice questions based on the topic "${topic}". Each should be in this JSON format:
 
 \`\`\`json
 [
@@ -104,7 +105,7 @@ export class ServicesService {
 
 Only return valid JSON inside triple backticks. Do not include explanation or anything else.`;
     } else if (type === 'short') {
-      return `Provide a short answer type question based on "${topic}" in this JSON format:
+      return `${baseInstruction}Provide a short answer type question based on "${topic}" in this JSON format:
 
 \`\`\`json
 {
@@ -116,7 +117,7 @@ Only return valid JSON inside triple backticks. Do not include explanation or an
 
 Only return valid JSON inside triple backticks. Do not include explanation or anything else.`;
     } else {
-      return `Provide a long answer type question based on "${topic}" in this JSON format:
+      return `${baseInstruction}Provide a long answer type question based on "${topic}" in this JSON format:
 
 \`\`\`json
 {
