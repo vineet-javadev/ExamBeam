@@ -89,7 +89,7 @@ export class ServicesService {
   // Here i have to do Prompt Engineering 
 
   messageToPrompt(topic: string, type: string, questionsHistory: string, hardness: number): string {
-    const baseInstruction = `Avoid repeating questions from this history:\n${questionsHistory}\nGenerate questions with a difficulty level of ${hardness}/10.`;
+    const baseInstruction = `Avoid repeating questions from this history:\n${questionsHistory}\nGenerate questions with a difficulty level of ${hardness}/10. If the hardness is 10 and the topic is programming, up to 40% of the questions can include code.`;
 
     if (type === 'mcq') {
       return `${baseInstruction} Generate 5 multiple-choice questions based on the topic "${topic}". The questions should reflect the specified difficulty level. Each should be in this JSON format:

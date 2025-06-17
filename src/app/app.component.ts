@@ -7,6 +7,7 @@ import { ServicesService } from './services.service';
 
 // Import MarkdownModule
 import { MarkdownModule } from 'ngx-markdown';
+import { AutoCodeBlockPipe } from "./auto-code-block.pipe";
 
 export interface QuestionResponse {
   question: string;
@@ -22,7 +23,7 @@ export interface QuestionsAnswerResponse {
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, MarkdownModule],
+  imports: [CommonModule, FormsModule, MarkdownModule, AutoCodeBlockPipe],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   animations: [
