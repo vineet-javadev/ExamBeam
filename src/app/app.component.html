@@ -79,7 +79,7 @@
               <!-- Render Question -->
               <div class="space-y-2">
                 <span class="text-md font-semibold text-indigo-400">Question {{ i + 1 }}:</span>
-                <markdown [data]="q.question  | autoCodeBlock"></markdown>
+                <markdown [data]="q.question | autoCodeBlock" />
               </div>
 
               <!-- Render Options -->
@@ -93,7 +93,9 @@
                     <input type="radio" [name]="'mcq' + i" [value]="opt" [(ngModel)]="selectedOptions[i]"
                       (change)="onMcqOptionSelect(i, opt)" [disabled]="selectedOptions[i] !== null"
                       class="accent-indigo-500" />
-                    <span class="text-sm text-zinc-300">{{ opt }}</span>
+                    <span class="text-sm text-zinc-300">
+                      <markdown [data]="opt | autoCodeBlock" />
+                    </span>
                   </div>
                 </label>
               </div>
