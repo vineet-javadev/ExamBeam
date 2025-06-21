@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { QuestionResponse, QuestionsAnswerResponse } from './app.component';
+import { QuestionResponse, QuestionsAnswerResponse } from '.././app.component';
 import { Mistral } from "@mistralai/mistralai";
-import { environment } from '../environments/environment';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -35,6 +35,7 @@ export class ServicesService {
 
     try {
       const parsed = JSON.parse(response);
+      console.log(parsed);
       return parsed;
     } catch (error) {
       console.error("Failed to parse response:", error);
@@ -42,11 +43,11 @@ export class ServicesService {
     }
   }
 
-  async checkAnswer(question: string, ans: string, type: string , hardness:number): Promise<QuestionsAnswerResponse | null> {
+  async checkAnswer(question: string, ans: string, type: string, hardness: number): Promise<QuestionsAnswerResponse | null> {
     try {
       const chatResponse = await this.client.chat.complete({
         model: "mistral-small-latest",
-        messages: [{ role: 'user', content: this.messageToPromptForCheck(question, ans, type , hardness) }],
+        messages: [{ role: 'user', content: this.messageToPromptForCheck(question, ans, type, hardness) }],
       });
 
       let rawContent = chatResponse.choices?.[0]?.message?.content;
@@ -89,40 +90,44 @@ export class ServicesService {
   // Here i have to do Prompt Engineering 
 
   messageToPrompt(topic: string, type: string, questionsHistory: string, hardness: number): string {
-    const baseInstruction = `Avoid repeating questions from this history:\n${questionsHistory}\nGenerate questions with a difficulty level of ${hardness}/10. If the hardness is 10 and the topic is programming, up to 40% of the questions can include code.`;
+    const isProgrammingTopic = /code|programming|algorithm|Java|Python|C\+\+|JavaScript|TypeScript|Spring|Angular/i.test(topic);
+    
+    const baseInstruction = `Avoid repeating questions from this history:\n${questionsHistory}\nGenerate questions with a difficulty level of ${hardness}/10.`;
+
+    const codeInstruction =
+      isProgrammingTopic && hardness >= 8
+        ? ` As the topic is programming-related and the difficulty is maximum, code-based content should be prioritized. 
+For MCQs, up to 40% of questions may include code snippets. 
+For short and long answer types, prefer questions that involve writing, analyzing, or debugging code. 
+If code is provided, ensure it is correct. Penalize the student for incorrect logic or poor explanation.`
+        : "";
 
     if (type === 'mcq') {
-      return `${baseInstruction} Generate 5 multiple-choice questions based on the topic "${topic}". The questions should reflect the specified difficulty level. Each should be in this JSON format:
+      return `${baseInstruction}${codeInstruction}
+Generate 5 multiple-choice questions based on the topic "${topic}". Each question should reflect the specified difficulty level. Use the following JSON format:
 
 \`\`\`json
 [
   {
-    "question": "What is the capital of France?",
-    "options": ["Berlin", "Madrid", "Paris", "Rome"],
-    "answer": "Paris"
+    "question": "What is the output of the following Java code snippet?",
+    "code": "public class Test {\\n  public static void main(String[] args) {\\n    int x = 10;\\n    System.out.println(x++ + ++x);\\n  }\\n}",
+    "options": ["10", "20", "30", "Compilation Error"],
+    "answer": "20"
   }
 ]
 \`\`\`
 
 Only return valid JSON inside triple backticks. Do not include explanation or anything else.`;
-    } else if (type === 'short') {
-      return `${baseInstruction}Provide a short answer type question based on "${topic}". It should reflect a difficulty level of ${hardness}/10. in this JSON format:
+    }
+
+    if (type === 'short') {
+      return `${baseInstruction}${codeInstruction}
+Provide a short answer type question based on the topic "${topic}". Use the following JSON format:
 
 \`\`\`json
 {
   "question": "Explain Newton's first law briefly.",
-  "options": null,
-  "answer": null
-}
-\`\`\`
-
-Only return valid JSON inside triple backticks. Do not include explanation or anything else.`;
-    } else {
-      return `${baseInstruction}Provide a long answer type question based on "${topic}". The depth and complexity should match a difficulty level of ${hardness}/10. in this JSON format:
-
-\`\`\`json
-{
-  "question": "Describe the water cycle in detail.",
+  "code": null,
   "options": null,
   "answer": null
 }
@@ -130,7 +135,25 @@ Only return valid JSON inside triple backticks. Do not include explanation or an
 
 Only return valid JSON inside triple backticks. Do not include explanation or anything else.`;
     }
+
+    // Default to 'long'
+    return `${baseInstruction}${codeInstruction}
+Provide a long answer type question based on the topic "${topic}". The depth and complexity should match a difficulty level of ${hardness}/10. If the topic is programming-related, the question must involve writing or analyzing code.
+
+Use the following JSON format:
+
+\`\`\`json
+{
+  "question": "Describe the water cycle in detail.",
+  "code": null,
+  "options": null,
+  "answer": null
+}
+\`\`\`
+
+Only return valid JSON inside triple backticks. Do not include explanation or anything else.`;
   }
+
 
   messageToPromptForCheck(question: string, ans: string, type: string, hardness: number): string {
     const isStrict = hardness >= 8;

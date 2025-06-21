@@ -35,10 +35,13 @@
         'rounded-2xl ': !sidebarVisible,
         'rounded-l-2xl ':  sidebarVisible && window.innerWidth >= 768 
         }"
-      class="relative transition-all duration-500 ease-in-out font-mono text-sm bg-gradient-to-br from-zinc-800/60 to-zinc-900/60 backdrop-blur-md shadow-xl flex flex-col text-zinc-200 border border-white/10 hover:ring-2 hover:ring-indigo-500/40 h-[calc(100vh-7rem)]">
+      class="overflow-hidden relative transition-all duration-500 ease-in-out font-mono text-sm bg-gradient-to-br from-zinc-800/60 to-zinc-900/60 backdrop-blur-md shadow-xl flex flex-col text-zinc-200 border border-white/10 hover:ring-2 hover:ring-indigo-500/40 h-[calc(100vh-7rem)]">
 
-      <div *ngIf="isLoading"
-        class="absolute inset-0 rounded-l-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 z-50 flex flex-col items-center justify-center space-y-4">
+      <div *ngIf="isLoading" [ngClass]="{
+        'rounded-l-2xl': sidebarVisible,
+        'rounded-2xl': !sidebarVisible
+      }"
+        class="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900 z-50 flex flex-col items-center justify-center space-y-4">
 
         <!-- Loader Animation -->
         <div class="flex space-x-2">
@@ -53,15 +56,12 @@
         </p>
       </div>
 
-
-
-
       <!-- SCROLLABLE CONTENT -->
       <div
         class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-zinc-800 scrollbar-w-[2px]">
 
         <!-- No response yet -->
-        <ng-container *ngIf="!response || response.length == 0">
+        <ng-container *ngIf="!response || response.length==0">
           <div class="h-full w-full flex justify-center items-center">
             <span
               class="text-2xl font-bold text-center bg-gradient-to-r from-pink-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent animate-gradient-x">
@@ -74,13 +74,19 @@
         <ng-container *ngIf="response">
 
           <!-- MCQ Mode -->
-          <ng-container *ngIf="examMode === 'mcq' && response.length">
+          <ng-container *ngIf="examMode === 'mcq' && response.length>0">
             <div *ngFor="let q of response; let i = index" class="mb-8 space-y-3">
               <!-- Render Question -->
               <div class="space-y-2">
                 <span class="text-md font-semibold text-indigo-400">Question {{ i + 1 }}:</span>
                 <markdown [data]="q.question | autoCodeBlock" />
               </div>
+              <!-- Render Code if exist -->
+              @if (q.code){
+              <div class="space-y-1 bg-zinc-300 p-3 rounded-lg border border-zinc-700 text-black dark:text-white">
+                <markdown [data]="(q?.code || '') | autoCodeBlock" />
+              </div>
+              }
 
               <!-- Render Options -->
               <div class="space-y-2">
@@ -109,29 +115,70 @@
             </div>
           </ng-container>
 
+          <ng-container *ngIf="response.length == 1">
+            <!-- QUESTION -->
+            <div class="space-y-2">
+              <span class="text-md font-semibold text-indigo-400">Question :</span>
+              <markdown [data]="response[0].question | autoCodeBlock"></markdown>
+            </div>
+
+            <!-- Render Code if exist -->
+            @if (response[0].code){
+            <div class="space-y-1 bg-zinc-300 p-3 rounded-lg border border-zinc-700 text-black dark:text-white">
+              <markdown [data]="(response[0]?.code || '') | autoCodeBlock" />
+            </div>
+            }
+
+            <!-- TEXTAREA -->
+            <textarea [(ngModel)]="Answer" [rows]="examMode === 'long' ? 15 : 5"
+              [placeholder]="examMode === 'long' ? 'Write your detailed answer...' : 'Write your answer...'"
+              class="w-full mt-2 bg-zinc-800 text-white border border-zinc-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+</textarea>
 
 
-          <!-- Short Question Mode -->
-          <ng-container *ngIf="examMode === 'short' && response.length > 0">
-            <markdown [data]="response[0].question"></markdown>
-            <textarea [(ngModel)]="Answer" required rows="5" placeholder="Write your answer..."
-              class="w-full mt-2 bg-zinc-800 text-white border border-zinc-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"></textarea>
-            <button (click)="submitAnswer(response[0].question)"
-              class="mt-2 w-fit bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-1.5 rounded-md shadow transition">
-              Submit Answer
-            </button>
+            <!-- IMAGE PREVIEW (conditionally shown) -->
+            <img *ngIf="selectedImage" [src]="selectedImage" alt="Selected image"
+              class="mt-3 max-w-full max-h-64 rounded-md border border-zinc-600 shadow" />
+
+            <!-- BUTTON GROUP: Submit, Mic, Camera -->
+            <div class="mt-3 flex gap-2 items-center">
+              <!-- Submit -->
+              <button (click)="submitAnswer(response[0].question)"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-1.5 rounded-md shadow transition">
+                Submit Answer
+              </button>
+
+              <!-- Mic Toggle -->
+              <button (click)="startSpeech()" [title]="isListening ? 'Stop Speaking' : 'Start Speaking'"
+                class="p-2 rounded-md bg-zinc-700 text-white hover:bg-zinc-600 transition">
+                <fa-icon [icon]="isListening ? faMicrophoneSlash : faMicrophone"></fa-icon>
+              </button>
+
+              <!-- Camera Upload -->
+              <button (click)="triggerImageUpload()" title="Upload Answer ( Currently Unable )"
+                class="p-2 rounded-md bg-zinc-700 text-white hover:bg-zinc-600 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" color="#ffffff"
+                  fill="none">
+                  <path
+                    d="M14.4998 19H12.4998C9.67139 19 8.25718 19 7.3785 18.1213C6.49982 17.2426 6.49982 15.8284 6.49982 13V8C6.49982 5.17157 6.49982 3.75736 7.3785 2.87868C8.25718 2 9.67139 2 12.4998 2H13.843C14.6605 2 15.0692 2 15.4368 2.15224C15.8043 2.30448 16.0933 2.59351 16.6714 3.17157L19.3282 5.82843C19.9063 6.40648 20.1953 6.69552 20.3476 7.06306C20.4998 7.4306 20.4998 7.83935 20.4998 8.65685V13C20.4998 15.8284 20.4998 17.2426 19.6211 18.1213C18.7425 19 17.3282 19 14.4998 19Z"
+                    stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <path
+                    d="M14.9998 2.5V3.5C14.9998 5.38562 14.9998 6.32843 15.5856 6.91421C16.1714 7.5 17.1142 7.5 18.9998 7.5H19.9998"
+                    stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <path
+                    d="M6.49942 5C4.84257 5 3.49942 6.34315 3.49942 8V16C3.49942 18.8285 3.49942 20.2427 4.3781 21.1213C5.25678 22 6.67099 22 9.49942 22H14.4998C16.1566 22 17.4998 20.6568 17.4998 19"
+                    stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <path d="M10 11H14M10 15H17" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round"></path>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Hidden File Input -->
+            <input type="file" accept="image/*" #fileInput hidden (change)="handleImage($event)" />
+
           </ng-container>
 
-          <!-- Long Question Mode -->
-          <ng-container *ngIf="examMode === 'long' && response.length > 0">
-            <markdown [data]="response[0].question"></markdown>
-            <textarea [(ngModel)]="Answer" required rows="15" placeholder="Write your detailed answer..."
-              class="w-full mt-2 bg-zinc-800 text-white border border-zinc-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"></textarea>
-            <button (click)="submitAnswer(response[0].question)"
-              class="mt-2 w-fit bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-1.5 rounded-md shadow transition">
-              Submit Answer
-            </button>
-          </ng-container>
 
           <ng-container *ngIf="Feedback">
             <div class="mt-4 p-4 bg-zinc-900 border border-zinc-700 rounded-md shadow space-y-3">
@@ -154,7 +201,7 @@
                   <h3 class="text-indigo-400 text-sm font-semibold">Correct Answer</h3>
                 </div>
                 <p *ngIf="Feedback" class="mt-2 text-white text-sm whitespace-pre-wrap">
-                  {{ Feedback.Answer }}
+                  <markdown [data]="Feedback.Answer | autoCodeBlock"></markdown>
                 </p>
               </div>
 

@@ -1,18 +1,40 @@
-import { Component, ChangeDetectorRef } from '@angular/core';
+import { Component, ChangeDetectorRef, ViewChild, ElementRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { trigger, transition, style, animate } from '@angular/animations';
 
-import { ServicesService } from './services.service';
+import { ServicesService } from './services/services.service';
 
 // Import MarkdownModule
 import { MarkdownModule } from 'ngx-markdown';
-import { AutoCodeBlockPipe } from "./auto-code-block.pipe";
+import { AutoCodeBlockPipe } from "./pipes/auto-code-block.pipe";
+import { SpeechRecognitionService } from './services/speech-recognition.service';
+
+// Imports for icons
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faCamera, faMicrophone, faMicrophoneSlash } from '@fortawesome/free-solid-svg-icons';
+
+
+export class YourComponent {
+  faCamera = faCamera;
+  faMicrophone = faMicrophone;
+
+  uploadPhoto() {
+    // Open file input / handle image
+  }
+
+  startSpeech() {
+    // Trigger speech recognition
+  }
+}
+
+
 
 export interface QuestionResponse {
   question: string;
   options: string[] | null;
   answer: string | null;
+  code: string | null | undefined;
 };
 
 export interface QuestionsAnswerResponse {
@@ -23,7 +45,7 @@ export interface QuestionsAnswerResponse {
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, MarkdownModule, AutoCodeBlockPipe],
+  imports: [CommonModule, FormsModule, MarkdownModule, AutoCodeBlockPipe, FontAwesomeModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   animations: [
@@ -40,7 +62,7 @@ export interface QuestionsAnswerResponse {
 })
 export class AppComponent {
 
-  constructor(private readonly cdr: ChangeDetectorRef, private readonly servicesService: ServicesService) { }
+  constructor(private readonly cdr: ChangeDetectorRef, private readonly servicesService: ServicesService, private speechService: SpeechRecognitionService, private ngZone: NgZone) { }
 
   response: QuestionResponse[] = [];
   Feedback: QuestionsAnswerResponse | null = null;
@@ -71,24 +93,84 @@ export class AppComponent {
   recentTopics: string[] = [];
   questionsHistory: string[] = [];
 
-  shortAnswer: string = '';
   Answer: string = '';
-  longAnswer: string = '';
   currentTagline: string = '';
   obtainMarks: number = 0;
   totalMarks: number = 0;
   isLoading: boolean = false;
   showCorrectAnswer: boolean = false;
 
+  // Speech Recognition 
+  isListening = false;
+  faMicrophone = faMicrophone;
+  faMicrophoneSlash = faMicrophoneSlash;
+
   setRandomTagline() {
     const index = Math.floor(Math.random() * this.taglines.length);
     this.currentTagline = this.taglines[index];
   }
 
+  startSpeech() {
+    if (!this.isListening) {
+      this.isListening = true;
+      this.speechService.start((partialText: string) => {
+        // Wrap update inside Angular zone so change detection triggers
+        this.ngZone.run(() => {
+          this.Answer = partialText;
+        });
+      });
+    } else {
+      this.isListening = false;
+      this.speechService.stop();
+    }
+  }
+
+  // @ViewChild('fileInput') fileInput!: ElementRef;
+
+  // uploadPhoto() {
+  //   this.fileInput.nativeElement.click();
+  // }
+
+  // onFileSelected(event: Event) {
+  //   const file = (event.target as HTMLInputElement).files?.[0];
+  //   if (file) {
+  //     console.log('Selected file:', file);
+  //   }
+  // }
+
+  //  testing
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+  selectedImage: string | null = null;
+
+  triggerImageUpload(): void {
+    alert("This feature is not free yet. Please subscribe to the premium plan to use this feature.");
+    // this.fileInput.nativeElement.click();
+  }
+
+  handleImage(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.selectedImage = reader.result as string;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      this.selectedImage = null;
+    }
+  }
+
+  // end testing
+
+
   async submitAnswer(question: string): Promise<void> {
     if (this.Answer) {
       this.setRandomTagline();
       this.isLoading = true;
+      this.isListening = false;
+      this.speechService.stop();
       try {
         this.Feedback = await this.servicesService.checkAnswer(question, this.Answer, this.examMode, this.hardnessLevel);
       } finally {
@@ -140,6 +222,10 @@ export class AppComponent {
   async submitTopic() {
     const topic = this.topicInput.trim();
     if (!topic) return;
+    // remove previous response and feedback
+    this.response = [];
+    this.Feedback = null;
+
     this.setRandomTagline();
     this.isLoading = true;
     if (window.innerWidth < 768) {
