@@ -90,70 +90,53 @@ export class ServicesService {
   // Here i have to do Prompt Engineering 
 
   messageToPrompt(topic: string, type: string, questionsHistory: string, hardness: number): string {
-    const isProgrammingTopic = /code|programming|algorithm|Java|Python|C\+\+|JavaScript|TypeScript|Spring|Angular/i.test(topic);
-    
-    const baseInstruction = `Avoid repeating questions from this history:\n${questionsHistory}\nGenerate questions with a difficulty level of ${hardness}/10.`;
 
-    const codeInstruction =
-      isProgrammingTopic && hardness >= 8
-        ? ` As the topic is programming-related and the difficulty is maximum, code-based content should be prioritized. 
-For MCQs, up to 40% of questions may include code snippets. 
-For short and long answer types, prefer questions that involve writing, analyzing, or debugging code. 
-If code is provided, ensure it is correct. Penalize the student for incorrect logic or poor explanation.`
-        : "";
+    const baseInstruction = `**Instructions:**\n- Response must be in **Markdown** format.\n- Do **not repeat** any questions from the following history:\n\`\`\`\n${questionsHistory}\n\`\`\`\n- Generate content with a **difficulty level of ${hardness}/10**.`;
+
+    const codeInstruction = hardness >= 8
+      ? `\n- **Programming topic detected with high difficulty.** Focus on code-based content.\n  - For **MCQs**, up to 40% of questions can contain code snippets.\n  - For **short/long answers**, prioritize questions involving **writing, debugging, or analyzing code**.\n  - Ensure code is syntactically correct.\n  - Penalize students for incorrect logic or poor explanation.`
+      : '';
+
+        const jsonBlock = (jsonContent: string): string => `\`\`\`json
+    ${jsonContent}
+    \`\`\``;
 
     if (type === 'mcq') {
       return `${baseInstruction}${codeInstruction}
-Generate 5 multiple-choice questions based on the topic "${topic}". Each question should reflect the specified difficulty level. Use the following JSON format:
 
-\`\`\`json
-[
+Generate *5 multiple-choice questions* based on the topic: *"${topic}"*.
+
+Return output strictly in the following JSON format:
+
+${jsonBlock(`[
   {
     "question": "What is the output of the following Java code snippet?",
     "code": "public class Test {\\n  public static void main(String[] args) {\\n    int x = 10;\\n    System.out.println(x++ + ++x);\\n  }\\n}",
     "options": ["10", "20", "30", "Compilation Error"],
     "answer": "20"
   }
-]
-\`\`\`
+]`)}
 
-Only return valid JSON inside triple backticks. Do not include explanation or anything else.`;
+Only return valid *JSON* inside triple backticks. Do *not* include explanations.`;
     }
 
     if (type === 'short') {
-      return `${baseInstruction}${codeInstruction}
-Provide a short answer type question based on the topic "${topic}". Use the following JSON format:
-
-\`\`\`json
-{
+      return `${baseInstruction}${codeInstruction}\n\nGenerate a **short answer question** for topic: **"${topic}"**.\n\nUse this JSON format:\n\n${jsonBlock(`{
   "question": "Explain Newton's first law briefly.",
   "code": null,
   "options": null,
   "answer": null
-}
-\`\`\`
-
-Only return valid JSON inside triple backticks. Do not include explanation or anything else.`;
+}`)}\n\nOnly return valid **JSON** inside triple backticks. No extra explanation.`;
     }
 
     // Default to 'long'
-    return `${baseInstruction}${codeInstruction}
-Provide a long answer type question based on the topic "${topic}". The depth and complexity should match a difficulty level of ${hardness}/10. If the topic is programming-related, the question must involve writing or analyzing code.
-
-Use the following JSON format:
-
-\`\`\`json
-{
+    return `${baseInstruction}${codeInstruction}\n\nGenerate a **long answer question** for topic: **"${topic}"**.\nThe complexity must reflect difficulty level **${hardness}/10**.\n\nUse this JSON format:\n\n${jsonBlock(`{
   "question": "Describe the water cycle in detail.",
   "code": null,
   "options": null,
   "answer": null
-}
-\`\`\`
-
-Only return valid JSON inside triple backticks. Do not include explanation or anything else.`;
+}`)}\n\nOnly return valid **JSON** inside triple backticks. No explanations.`;
   }
-
 
   messageToPromptForCheck(question: string, ans: string, type: string, hardness: number): string {
     const isStrict = hardness >= 8;
@@ -190,7 +173,7 @@ Instructions:
 - Respond only in this strict JSON format:
 ${format}
 
-Do not explain more than required. Do not include anything outside the JSON object.
+Do not explain more than required. Do not include anything outside the JSON object. And response should be in Markdown f
   `.trim();
 
     return instructions;

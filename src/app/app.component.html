@@ -79,12 +79,12 @@
               <!-- Render Question -->
               <div class="space-y-2">
                 <span class="text-md font-semibold text-indigo-400">Question {{ i + 1 }}:</span>
-                <markdown [data]="q.question | autoCodeBlock" />
+                <markdown [data]="q.question" />
               </div>
               <!-- Render Code if exist -->
               @if (q.code){
-              <div class="space-y-1 bg-zinc-300 p-3 rounded-lg border border-zinc-700 text-black dark:text-white">
-                <markdown [data]="(q?.code || '') | autoCodeBlock" />
+            <div class="space-y-1 bg-zinc-800 p-3 rounded-lg border border-zinc-700 text-slate-200 dark:text-white">
+                <markdown [data]="(q?.code || '')" />
               </div>
               }
 
@@ -100,7 +100,7 @@
                       (change)="onMcqOptionSelect(i, opt)" [disabled]="selectedOptions[i] !== null"
                       class="accent-indigo-500" />
                     <span class="text-sm text-zinc-300">
-                      <markdown [data]="opt | autoCodeBlock" />
+                      <markdown [data]="opt" />
                     </span>
                   </div>
                 </label>
@@ -119,13 +119,13 @@
             <!-- QUESTION -->
             <div class="space-y-2">
               <span class="text-md font-semibold text-indigo-400">Question :</span>
-              <markdown [data]="response[0].question | autoCodeBlock"></markdown>
+              <markdown [data]="response[0].question"></markdown>
             </div>
 
             <!-- Render Code if exist -->
             @if (response[0].code){
-            <div class="space-y-1 bg-zinc-300 p-3 rounded-lg border border-zinc-700 text-black dark:text-white">
-              <markdown [data]="(response[0]?.code || '') | autoCodeBlock" />
+            <div class="space-y-1 bg-zinc-800 p-3 rounded-lg border border-zinc-700 text-slate-200 dark:text-white">
+              <markdown [data]="(response[0].code || '')" />
             </div>
             }
 
@@ -201,7 +201,7 @@
                   <h3 class="text-indigo-400 text-sm font-semibold">Correct Answer</h3>
                 </div>
                 <p *ngIf="Feedback" class="mt-2 text-white text-sm whitespace-pre-wrap">
-                  <markdown [data]="Feedback.Answer | autoCodeBlock"></markdown>
+                  <markdown [data]="Feedback.Answer"></markdown>
                 </p>
               </div>
 

@@ -7,7 +7,6 @@ import { ServicesService } from './services/services.service';
 
 // Import MarkdownModule
 import { MarkdownModule } from 'ngx-markdown';
-import { AutoCodeBlockPipe } from "./pipes/auto-code-block.pipe";
 import { SpeechRecognitionService } from './services/speech-recognition.service';
 
 // Imports for icons
@@ -45,7 +44,7 @@ export interface QuestionsAnswerResponse {
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, MarkdownModule, AutoCodeBlockPipe, FontAwesomeModule],
+  imports: [CommonModule, FormsModule, MarkdownModule, FontAwesomeModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   animations: [
