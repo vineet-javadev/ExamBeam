@@ -16,4 +16,17 @@
   background-color: #27272a; /* Zinc-800 */
 }
 
+/* Code block enhencements */
+pre code {
+  font-size: small ; /* 12px */
+  display: block;
+  overflow-x : auto;
+  color: #c7c7c7 !important;
+  font-family: 'Fira Code', 'Courier New', Courier, monospace;
+  font-weight: normal;
+}
 
+/* Fix inner pading for consistency */
+.markdown-body pre{
+  margin-bottom: 1rem;
+}

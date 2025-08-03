@@ -103,6 +103,25 @@ export class AppComponent {
   isListening = false;
   faMicrophone = faMicrophone;
   faMicrophoneSlash = faMicrophoneSlash;
+  
+  ngOnInit() {
+    this.totalMarks = 0;
+    this.obtainMarks = 0;
+    this.setRandomTagline();
+    const store = localStorage.getItem('recentTopics');
+    if (store != null) {
+      this.recentTopics = JSON.parse(store);
+      this.started = true;
+    }
+    this.selectedOptions = Array(this.response.length).fill(null); // Initialize selected options array
+    // Show sidebar by default on large screens, hide on small screens
+    this.sidebarVisible = window.innerWidth >= 768;
+    if (window.innerWidth < 768) {
+      setTimeout(() => {
+        this.sidebarVisible = true;
+      }, 2000);
+    }
+  }
 
   setRandomTagline() {
     const index = Math.floor(Math.random() * this.taglines.length);
@@ -262,20 +281,6 @@ export class AppComponent {
     this.topicInput = topic;
   }
 
-  ngOnInit() {
-    this.totalMarks = 0;
-    this.obtainMarks = 0;
-    this.setRandomTagline();
-    const store = localStorage.getItem('recentTopics');
-    if (store != null) {
-      this.recentTopics = JSON.parse(store);
-      this.started = true;
-    }
-    this.selectedOptions = Array(this.response.length).fill(null); // Initialize selected options array
-    // Show sidebar by default on large screens, hide on small screens
-    this.sidebarVisible = window.innerWidth >= 768;
-  }
-
   onMcqOptionSelect(index: number, option: string) {
     if (this.response[index].answer === option) {
       this.obtainMarks++;
@@ -289,6 +294,23 @@ export class AppComponent {
       this.selectedOptions &&
       this.selectedOptions.length === this.response.length &&
       this.selectedOptions.every(option => option !== null && option !== undefined);
+  }
+
+  // For format the code output
+  getFormattedCode(code: string | null | undefined): string {
+    if (!code) return '';
+
+    // Determine language based on code content
+    let language = 'javascript'; // default
+    if (code.includes('public class') || code.includes('System.out')) {
+      language = 'java';
+    } else if (code.includes('def ') || code.includes('print(')) {
+      language = 'python';
+    } else if (code.includes('#include') || code.includes('std::')) {
+      language = 'cpp';
+    }
+
+    return `\`\`\`${language}\n${code.replace(/\\n/g, '\n')}\n\`\`\``;
   }
 
 }
